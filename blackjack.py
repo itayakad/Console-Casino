@@ -1,5 +1,5 @@
 import time
-from deck import Deck
+from misc.deck import Deck
 
 # Define ANSI escape codes for colors
 RED = "\033[91m"
@@ -22,6 +22,7 @@ def calculate_hand_value(hand):
         else:
             value += int(card.rank)
     
+    # Adjust for aces if value exceeds 21
     while value > 21 and aces:
         value -= 10
         aces -= 1
@@ -39,9 +40,9 @@ def display_hand_value(hand):
 def print_hand(hand, name, hide_last_card=False):
     hand_value_display = display_hand_value(hand)
     if hide_last_card:
-        print(f"{name}'s hand: {', '.join(map(str, hand[:-1]))}, [Hidden]")
+        print(f"{CYAN}{name}'s hand:{RESET} {', '.join(map(str, hand[:-1]))}, [Hidden]")
     else:
-        print(f"{name}'s hand: {', '.join(map(str, hand))} (Value: {hand_value_display})")
+        print(f"{CYAN}{name}'s hand:{RESET} {', '.join(map(str, hand))} (Value: {hand_value_display})")
 
 def hit(deck, hand):
     hand.append(deck.deal(1)[0])
@@ -65,15 +66,15 @@ def split_hand(deck, hand, bet):
     hand2 = [hand[1], deck.deal(1)[0]]
     time.sleep(1)
 
-    print("Hand 1 after split:")
+    print(f"{MAGENTA}Hand 1 after split:{RESET}")
     print_hand(hand1, "Player's Hand 1")
-    print("Hand 2 after split:")
+    print(f"{MAGENTA}Hand 2 after split:{RESET}")
     print_hand(hand2, "Player's Hand 2")
 
     bet2 = bet
 
     while True:
-        choice = input("Hand 1: Do you want to (H)it or (S)tand? ").lower()
+        choice = input(f"{YELLOW}Hand 1: Do you want to (H)it or (S)tand? {RESET}").lower()
         if choice == 'h':
             if not hit(deck, hand1):
                 break
@@ -84,7 +85,7 @@ def split_hand(deck, hand, bet):
             print(f"{RED}Invalid choice. Please choose 'H' to Hit or 'S' to Stand.{RESET}")
 
     while True:
-        choice = input("Hand 2: Do you want to (H)it or (S)tand? ").lower()
+        choice = input(f"{YELLOW}Hand 2: Do you want to (H)it or (S)tand? {RESET}").lower()
         if choice == 'h':
             if not hit(deck, hand2):
                 break
@@ -98,7 +99,7 @@ def split_hand(deck, hand, bet):
 
 def double_down(deck, hand):
     print(f"{CYAN}You chose to double down.{RESET}")
-    face_choice = input("Do you want the card to be dealt face up (U) or face down (D)? ").lower()
+    face_choice = input(f"{CYAN}Do you want the card to be dealt face up (U) or face down (D)? {RESET}").lower()
     
     hand.append(deck.deal(1)[0])
     
@@ -111,7 +112,7 @@ def double_down(deck, hand):
 
 def offer_insurance(bet, dealer_hand):
     if dealer_hand[0].rank == 'A':
-        insurance_bet = input(f"Dealer has an Ace. Do you want to take insurance? (Y/N) ").lower()
+        insurance_bet = input(f"{YELLOW}Dealer has an Ace. Do you want to take insurance? (Y/N) {RESET}").lower()
         if insurance_bet == 'y':
             insurance_amount = min(bet // 2, bet)
             return insurance_amount
@@ -121,7 +122,7 @@ def should_offer_surrender(dealer_hand):
     return dealer_hand[0].rank in ['A', '10', 'J', 'Q', 'K']
 
 def surrender(bet):
-    surrender_choice = input(f"Do you want to surrender and lose half your bet (${bet // 2})? (Y/N) ").lower()
+    surrender_choice = input(f"{MAGENTA}Do you want to surrender and lose half your bet (${bet // 2})? (Y/N) {RESET}").lower()
     if surrender_choice == 'y':
         print(f"{MAGENTA}You have surrendered. You lose ${bet // 2}.{RESET}")
         return True
@@ -134,18 +135,18 @@ def blackjack():
 
     while playing:
         if play_again == 'c':
-            bet = int(input("\nHow many $$ would you like to bet?: $"))
+            bet = int(input(f"\n{CYAN}How many $$ would you like to bet?: {RESET}$"))
 
         deck = Deck()
         player_hand = deck.deal(2)
         dealer_hand = deck.deal(2)
 
         print_hand(player_hand, "Player")
-        print(f"Dealer's hand: {dealer_hand[0]}, [Hidden]")
+        print(f"{CYAN}Dealer's hand:{RESET} {dealer_hand[0]}, [Hidden]")
 
         insurance_amount = offer_insurance(bet, dealer_hand)
         if insurance_amount > 0:
-            print(f"Insurance bet placed: ${insurance_amount}")
+            print(f"{YELLOW}Insurance bet placed: ${insurance_amount}{RESET}")
 
         if should_offer_surrender(dealer_hand) and surrender(bet):
             net -= bet // 2
@@ -154,7 +155,7 @@ def blackjack():
         if dealer_hand[0].rank == 'A':
             # Check if the dealer could have a blackjack
             if any(card.rank in ['10', 'J', 'Q', 'K'] for card in dealer_hand[1:]):
-                print("Dealer flips their other card...")
+                print(f"{CYAN}Dealer flips their other card...{RESET}")
                 time.sleep(2)  # Pause for dramatic effect
                 print_hand(dealer_hand, "Dealer")
 
@@ -172,7 +173,7 @@ def blackjack():
         doubled_down = False
 
         while playing:
-            choice = input("Do you want to (H)it, (S)tand, (P)split, or (D)ouble down? ").lower()
+            choice = input(f"{CYAN}Do you want to hit (h), stand (s), split (p), or double down (d)? {RESET}").lower()
             if choice == 'h':
                 if not hit(deck, player_hand):
                     net -= bet
@@ -188,13 +189,17 @@ def blackjack():
                     player_value2 = calculate_hand_value(hand2)
 
                     if player_value1 > dealer_hand_value and player_value1 <= 21:
+                        print(f"{GREEN}Hand 1 wins!{RESET}")
                         net += bet
                     else:
+                        print(f"{RED}Hand 1 loses!{RESET}")
                         net -= bet
 
                     if player_value2 > dealer_hand_value and player_value2 <= 21:
+                        print(f"{GREEN}Hand 2 wins!{RESET}")
                         net += bet2
                     else:
+                        print(f"{RED}Hand 2 loses!{RESET}")
                         net -= bet2
 
                     break
@@ -217,13 +222,13 @@ def blackjack():
                     net += bet * (2 if doubled_down else 1)
                     break
 
-            if calculate_hand_value(dealer_hand) <= 21:
+            dealer_value = calculate_hand_value(dealer_hand)
+            if dealer_value <= 21:  # This condition is now updated to use the correct value
                 if doubled_down:
-                    print("Revealing your hidden card...")
+                    print(f"{CYAN}Revealing your hidden card...{RESET}")
                     time.sleep(2)
                     print_hand(player_hand, "Player")
 
-                dealer_value = calculate_hand_value(dealer_hand)
                 player_value = calculate_hand_value(player_hand)
 
                 if player_value > dealer_value:
@@ -245,7 +250,7 @@ def blackjack():
                 net -= insurance_amount
 
         while True:
-            play_again = input(f"Do you want to (S)top, (P)lay again with the same bet (${bet}), or (C)hange your bet?\n If you would like to see how you are doing so far, enter 'net': ").lower()
+            play_again = input(f"{CYAN}Do you want to stop (s), play again with the same bet of ${bet} (r), or change your bet (c)?\n If you would like to see how you are doing so far, enter 'net': {RESET}").lower()
             if play_again == 'net':
                 print(f"{BLUE}Your net profit is ${net}.{RESET}")
             elif play_again == 's':
