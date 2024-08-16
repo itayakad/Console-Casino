@@ -30,7 +30,7 @@ class Player:
 
     def call(self, hero_bet, villain_bet):
         call_amount = villain_bet - hero_bet
-        print(f"CA:{call_amount}, HB: {hero_bet}, VB: {villain_bet}")
+        #print(f"CA:{call_amount}, HB: {hero_bet}, VB: {villain_bet}")
         self.bet(call_amount)
         return call_amount
 
@@ -62,22 +62,23 @@ class AIPlayer(Player):
     def __init__(self, name, chips):
         super().__init__(name, chips)
     
-    def bot_raise(self):
-        self.bet(50)
-        return 50
+    def bot_raise(self, opponent):
+        # Bot decides how much to raise
+        br = SMALL_BLIND * 5
+        if br < 2 * opponent.current_bet:
+            br = 2 * opponent.current_bet
+        self.bet(br)
+        return br
 
     def make_decision(self, community_cards, pot, opponent_bet, type):
         time.sleep(1)
-        '''evaluator = HandEvaluator()
-        best_hand = evaluator.best_hand(self.hand, community_cards)
-        hand_strength = evaluator.evaluate_hand_strength(best_hand)'''
 
-        if type == 1:
+        if type == 1: # Bets are equal; check/raise
             return "check"
         if type == 2:
-            return "call"
+            return "call" # Being taken all in; call/fold
         if type == 3:
-            return "raise"
+            return "raise" # Everything else; call/raise/fold
 
 def display_game_state(player1, player2, pot, community_cards, flip):
     print("\n--- Game State ---")
@@ -154,7 +155,7 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                         player2_acted = True
                 elif action == 'raise':
                     if isinstance(player1, AIPlayer):
-                        raise_amount = player1.bot_raise()
+                        raise_amount = player1.bot_raise(player2)
                     else:
                         raise_amount = player1.raise_bet(player2)
                     print(f"{player1.name} has raised {raise_amount}.")
@@ -168,7 +169,6 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                     if player2.current_bet == player1.current_bet:
                         if isinstance(player2, AIPlayer):
                             action = player2.make_decision(community_cards, pot, player1.current_bet, 1)
-                            print(1)
                             break
                         else:
                             action = input(f"{player2.name}, choose your action (check, raise): ").lower()
@@ -179,7 +179,6 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                     elif player1.current_bet >= player2.chips:
                         if isinstance(player2, AIPlayer):
                             action = player2.make_decision(community_cards, pot, player1.current_bet, 2)
-                            print(2)
                             break
                         else:
                             action = input(f"{player2.name}, choose your action (call {player1.current_bet - player2.current_bet}, fold): ").lower()
@@ -190,7 +189,6 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                     else:
                         if isinstance(player2, AIPlayer):
                             action = player2.make_decision(community_cards, pot, player1.current_bet, 3)
-                            print("3")
                             break
                         else:
                             action = input(f"{player2.name}, choose your action (call {player1.current_bet - player2.current_bet}, raise, fold): ").lower()
@@ -217,7 +215,7 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                         player1_acted = True
                 elif action == 'raise':
                     if isinstance(player2, AIPlayer):
-                        raise_amount = player2.bot_raise
+                        raise_amount = player2.bot_raise(player1)
                     else:
                         raise_amount = player2.raise_bet(player1)
                     print(f"{player2.name} has raised {raise_amount}.")
@@ -262,11 +260,11 @@ def compare_hands(hand1, hand2, community_cards):
         print("It's a tie")
         return
 
-name = input("What is your name?: ").capitalize()
+# --- MAIN GAME STATE ---
+name = input("\nWhat is your name?: ").capitalize()
 buyin = int(input("How much would you like to buy in? This determines the blinds of the game as well: "))
 print(f"Welcome, {name}. You will be playing against an AI Poker Bot in heads up poker. You have chosen to buy in for {buyin}. The bot will match this stack, and the blinds are set at {buyin/100}/{buyin/50}.")
 
-# Initialize players
 player1 = Player(name, buyin)
 player2 = AIPlayer("Bot", buyin)
 player1.current_bet = 0
@@ -275,7 +273,6 @@ SMALL_BLIND = buyin/100
 BIG_BLIND = buyin/50
 hand_num = 0
 
-# Initialize dealer
 dealer = player1
 
 while player1.chips > 0 and player2.chips > 0:
