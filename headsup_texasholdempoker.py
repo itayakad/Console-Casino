@@ -1,6 +1,8 @@
 from misc.deck import Deck
 from misc.hand_evaluator import HandEvaluator
 import time
+import random
+from collections import Counter
 
 deck = Deck()
 
@@ -61,24 +63,136 @@ class Player:
 class AIPlayer(Player):
     def __init__(self, name, chips):
         super().__init__(name, chips)
-    
-    def bot_raise(self, opponent):
-        # Bot decides how much to raise
-        br = SMALL_BLIND * 5
-        if br < 2 * opponent.current_bet:
-            br = 2 * opponent.current_bet
-        self.bet(br)
-        return br
+        self.aggression_factor = random.uniform(0.5, 1.5)  # Variable aggression
+
+    def evaluate_hand_strength(self, community_cards):
+        evaluator = HandEvaluator()
+        best_hand = evaluator.best_hand(self.hand, community_cards)
+        hand_rank = best_hand[0]
+        return hand_rank
+
+    def pot_odds(self, call_amount, pot):
+        return call_amount / (pot + call_amount)
+
+    def expected_value(self, hand_strength, pot, call_amount):
+        return hand_strength * pot - call_amount
+
+    def board_texture(self, community_cards):
+        evaluator = HandEvaluator()
+        if len(community_cards) < 3:
+            return "safe"  # Not enough community cards to form any serious threats
+        
+        if evaluator.is_flush(community_cards) or evaluator.is_straight(community_cards):
+            return "dangerous"
+        elif len(community_cards) >= 3 and len(set([card.suit for card in community_cards])) == 1:
+            return "flush_draw"
+        elif len(community_cards) >= 3 and (max([evaluator.card_rank(card) for card in community_cards]) - min([evaluator.card_rank(card) for card in community_cards]) <= 4):
+            return "straight_draw"
+        else:
+            return "safe"
+        
+    def simulate_hand(self, bot_hand, num_simulations=1000):
+        deck = Deck()  # Initialize a fresh deck
+        evaluator = HandEvaluator()  # Initialize the hand evaluator
+        bot_wins = 0
+        
+        for _ in range(num_simulations):
+            # Remove bot's cards from the deck
+            deck = Deck()  # Reset the deck each time
+            deck.cards = [card for card in deck.cards if card not in bot_hand]
+            
+            # Deal opponent's hand
+            opponent_hand = deck.deal(2)
+            
+            # Deal community cards
+            community_cards = deck.deal(5)
+            
+            # Evaluate hands
+            bot_best_hand = evaluator.best_hand(bot_hand, community_cards)
+            opponent_best_hand = evaluator.best_hand(opponent_hand, community_cards)
+            
+            # Compare bot's hand with opponent's hand
+            if bot_best_hand[0] > opponent_best_hand[0]:
+                bot_wins += 1
+            elif bot_best_hand[0] == opponent_best_hand[0]:
+                # Compare high cards if hands are the same rank
+                bot_high_cards = [evaluator.card_rank(card) for card in bot_best_hand[1]]
+                opponent_high_cards = [evaluator.card_rank(card) for card in opponent_best_hand[1]]
+                
+                if bot_high_cards > opponent_high_cards:
+                    bot_wins += 1
+                elif bot_high_cards == opponent_high_cards:
+                    bot_wins += 0.5  # Count tie as half win
+        
+        # Calculate win percentage
+        win_percentage = bot_wins / num_simulations
+        return win_percentage
 
     def make_decision(self, community_cards, pot, opponent_bet, type):
-        time.sleep(1)
+        time.sleep(1)  # Simulate thinking time
 
-        if type == 1: # Bets are equal; check/raise
-            return "check"
-        if type == 2:
-            return "call" # Being taken all in; call/fold
-        if type == 3:
-            return "raise" # Everything else; call/raise/fold
+        call_amount = opponent_bet - self.current_bet
+        pot_odds = self.pot_odds(call_amount, pot)
+        board_type = self.board_texture(community_cards)
+        if not community_cards:
+            hand_strength = self.simulate_hand(self.hand, num_simulations=1000)
+        else:
+            hand_strength = self.evaluate_hand_strength(community_cards) / 8.0
+        raise_probability = 0.8  # Set a high base probability for raising
+
+        if type == 1:  # Bets are equal; check/raise scenario
+            if hand_strength > 0.5:
+                return "raise" if random.random() < raise_probability else "check"
+            elif hand_strength > 0.3 and board_type == "safe":
+                return "raise" if random.random() < 0.6 else "check"
+            else:
+                return "check"
+        
+        elif type == 2:  # Being taken all in; call/fold scenario
+            if hand_strength > 0.6:  # Tighten up calling thresholds
+                return "call"
+            elif pot_odds > 0.4 and hand_strength > 0.4:
+                return "call" if random.random() < raise_probability else "fold"
+            else:
+                return "fold"
+        
+        elif type == 3:  # General scenario: call, raise, or fold
+            expected_value = self.expected_value(hand_strength, pot, call_amount)
+
+            if board_type == "dangerous":
+                if hand_strength > 0.6:  # Only raise with stronger hands on dangerous boards
+                    return "raise" if random.random() < raise_probability else "call"
+                else:
+                    return "fold"
+            elif board_type == "safe":
+                if expected_value > 0 or hand_strength > 0.3:
+                    return "raise" if random.random() < raise_probability else "call"
+                elif hand_strength > 0.2 and random.random() < 0.5:
+                    return "raise"
+                else:
+                    return "call" if pot_odds < 0.5 else "fold"
+            else:  # Draw-heavy board
+                if hand_strength > 0.4:  # Raise more selectively on draw-heavy boards
+                    return "raise" if random.random() < raise_probability else "call"
+                else:
+                    return "fold"
+
+    def bot_raise(self, opponent):
+        # Different raise multipliers for varying raise sizes
+        raise_multipliers = [3, 5, 7, 10]
+
+        # Choose a raise multiplier based on random chance or hand strength
+        if self.evaluate_hand_strength([]) / 8.0 > 0.7:
+            chosen_multiplier = random.choice([7, 10])  # Strong hand, prefer larger raises
+        else:
+            chosen_multiplier = random.choice(raise_multipliers)  # Random choice for variety
+
+        base_raise = SMALL_BLIND * chosen_multiplier
+        br = max(base_raise, 2 * opponent.current_bet)
+        br = min(br, self.chips)
+        self.bet(br)
+
+        return br
 
 def display_game_state(player1, player2, pot, community_cards, flip):
     print("\n--- Game State ---")
@@ -318,10 +432,10 @@ while player1.chips > 0 and player2.chips > 0:
     # Determine and display the winner
     if player1.folded:
         player2.chips += pot
-        print("Player 2 wins because Player 1 folded.")
+        print(f"{player2.name} wins because {player1.name} folded.")
     elif player2.folded:
         player1.chips += pot
-        print("Player 1 wins because Player 2 folded.")
+        print(f"{player1.name} wins because {player2.name} folded.")
     else:
         winner = compare_hands(player1.hand, player2.hand, community_cards)
         if winner == player1:
