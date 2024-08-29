@@ -3,6 +3,7 @@ from misc.hand_evaluator import HandEvaluator
 import time
 import random
 from collections import Counter
+import misc.ansicolors as colors
 
 deck = Deck()
 
@@ -31,30 +32,28 @@ class Player:
 
     def call(self, hero_bet, villain_bet):
         call_amount = villain_bet - hero_bet
-        #print(f"CA:{call_amount}, HB: {hero_bet}, VB: {villain_bet}")
         self.bet(call_amount)
         return call_amount
 
     def raise_bet(self, villain):
         invalid_value = True
         while invalid_value:
-            raise_input = input("Enter raise amount (enter 'all in' to go all in): ")
+            raise_input = input(f"{colors.MAGENTA}Enter raise amount (enter 'all in' to go all in): {colors.RESET}")
             if raise_input.lower() == "all in":
                 invalid_value = False
             elif raise_input.isdigit() and int(raise_input) >= 2 * villain.current_bet:
                 invalid_value = False
             else:
-                print(f"Invalid input. You must bet at least twice the opponent's bet ({villain.current_bet}), so min raise is {villain.current_bet * 2}")
+                print(f"{colors.RED}Invalid input. You must bet at least twice the opponent's bet ({villain.current_bet}), so min raise is {villain.current_bet * 2}{colors.RESET}")
         
         if raise_input.lower() == "all in":
             if self.chips > villain.chips:
-                print(f"{self.name} has gone all in. Since {villain.name} has less chips, the all in amount is set at {villain.name}'s stack, so {self.name} goes all in for {villain.chips}.")
+                print(f"{self.name}{colors.MAGENTA} has gone all in. Since {colors.RESET}{villain.name}{colors.MAGENTA} has less chips, the all in amount is set at {colors.RESET}{villain.name}{colors.MAGENTA}'s stack, so {colors.RESET}{self.name}{colors.MAGENTA} goes all in for {villain.chips}.{colors.RESET}")
                 raise_amount = villain.chips + (villain.current_bet - self.current_bet)
             else:
                 raise_amount = self.chips
         else:
             raise_amount = int(raise_input)
-            #print(f"Raise:{raise_amount}")
         
         self.bet(raise_amount)
         return raise_amount
@@ -191,9 +190,6 @@ class AIPlayer(Player):
                 return "fold"
         
         elif type == 3 or type == 1:  # 1: Bets equal: check, raise | 3: General scenario: call, raise, or fold
-            # print(f"hand stren: {hand_strength}")
-            # print(f"board stren: {board_type}")
-
             if board_type == "dangerous":
                 if hand_strength > 0.7 and ev > 0:  # Only raise with stronger hands on dangerous boards
                     if random.random() < raise_probability:
@@ -241,7 +237,6 @@ class AIPlayer(Player):
 
 
     def bot_raise(self, opponent):
-        # Calculate hand strength using the win percentage from the simulation
         hand_strength = self.simulate_hand(self.hand, community_cards, num_simulations=1000)
         agg = aggressiveness
 
@@ -266,22 +261,22 @@ class AIPlayer(Player):
 
 def display_game_state(player1, player2, pot, community_cards, flip):
     evaluator = HandEvaluator()
-    print("\n--- Game State ---")
+    print(f"{colors.CYAN}\n--- Game State ---{colors.RESET}")
     if flip:
-        print(f"{player1.name}'s Hand: {player1.hand}")
-        print(f"{player2.name}'s Hand: {player2.hand}")
+        print(f"{player1.name}{colors.CYAN}'s Hand:{colors.RESET} {player1.hand}")
+        print(f"{player2.name}{colors.CYAN}'s Hand:{colors.RESET} {player2.hand}")
     else:
         if not isinstance(player1, AIPlayer):
-            print(f"{player1.name}'s Hand: {player1.hand}")
-            print(f"Hand Strength: {evaluator.hand_type((evaluator.best_hand(player1.hand, community_cards))[0])}")
+            print(f"{player1.name}{colors.CYAN}'s Hand:{colors.RESET} {player1.hand}")
+            print(f"{colors.CYAN}Hand Strength:{colors.RESET} {evaluator.hand_type((evaluator.best_hand(player1.hand, community_cards))[0])}")
         else:
-            print(f"{player2.name}'s Hand: {player2.hand}")
-            print(f"Hand Strength: {evaluator.hand_type((evaluator.best_hand(player2.hand, community_cards))[0])}")
-    print(f"Community Cards: {community_cards}")
-    print(f"Pot Size: {pot}")
-    print(f"{player1.name} Chips: {player1.chips}")
-    print(f"{player2.name} Chips: {player2.chips}")
-    print("------------------\n")
+            print(f"{player2.name}{colors.CYAN}'s Hand:{colors.RESET} {player2.hand}")
+            print(f"{colors.CYAN}Hand Strength:{colors.RESET} {evaluator.hand_type((evaluator.best_hand(player2.hand, community_cards))[0])}")
+    print(f"{colors.CYAN}Community Cards:{colors.RESET} {community_cards}")
+    print(f"{colors.CYAN}Pot Size:{colors.RESET} {pot}")
+    print(f"{player1.name}{colors.CYAN} Chips:{colors.RESET} {player1.chips}")
+    print(f"{player2.name}{colors.CYAN} Chips:{colors.RESET} {player2.chips}")
+    print(f"{colors.CYAN}------------------\n{colors.RESET}")
 
 def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
     if (not player1.folded and not player2.folded) and (player1.chips > 0 and player2.chips > 0):
@@ -298,44 +293,44 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                             action = player1.make_decision(community_cards, pot, player2.current_bet, 1)
                             break
                         else:
-                            action = input(f"{player1.name}, choose your action (check, raise): ").lower()
+                            action = input(f"{player1.name}{colors.CYAN}, choose your action (check, raise): {colors.RESET}").lower()
                             if action in ['check', 'raise']:
                                 break
                             else:
-                                print("Invalid action. Please choose 'check' or 'raise'.")
+                                print(f"{colors.RED}Invalid action. Please choose 'check' or 'raise'.{colors.RESET}")
                     elif player2.current_bet >= player1.chips:
                         if isinstance(player1, AIPlayer):
                             action = player1.make_decision(community_cards, pot, player2.current_bet, 2)
                             break
                         else:
-                            action = input(f"{player1.name}, choose your action (call {player2.current_bet - player1.current_bet}, fold): ").lower()
+                            action = input(f"{player1.name}{colors.MAGENTA}, choose your action (call {player2.current_bet - player1.current_bet}, fold): {colors.RESET}").lower()
                             if action in ['call', 'fold']:
                                 break
                             else:
-                                print("Invalid action. Please choose 'call' or 'fold'.")
+                                print(f"{colors.RED}Invalid action. Please choose 'call' or 'fold'.{colors.RESET}")
                     else:
                         if isinstance(player1, AIPlayer):
                             action = player1.make_decision(community_cards, pot, player2.current_bet, 3)
                             break
                         else:
-                            action = input(f"{player1.name}, choose your action (call {player2.current_bet - player1.current_bet}, raise, fold): ").lower()
+                            action = input(f"{player1.name}{colors.MAGENTA}, choose your action (call {player2.current_bet - player1.current_bet}, raise, fold): {colors.RESET}").lower()
                             if action in ['call', 'raise', 'fold']:
                                 break
                             else:
-                                print("Invalid action. Please choose 'call', 'raise', or 'fold'.")
+                                print(f"{colors.RED}Invalid action. Please choose 'call', 'raise', or 'fold'.{colors.RESET}")
 
                 if action == 'fold':
-                    print(f"{player1.name} has folded.")
+                    print(f"{player1.name}{colors.GREEN} has folded.{colors.RESET}")
                     player1.fold()
                     player1_acted = True
                     break
                 elif action == 'check':
-                    print(f"{player1.name} has checked.")
+                    print(f"{player1.name}{colors.GREEN} has checked.{colors.RESET}")
                     player1.check()
                     player1_acted = True
                 elif action == 'call':
                     call_amount = player1.call(player1.current_bet, player2.current_bet)
-                    print(f"{player1.name} has called {call_amount}.")
+                    print(f"{player1.name}{colors.GREEN} has called {call_amount}.{colors.RESET}")
                     pot += call_amount
                     player1_acted = True
                     if not blinds:
@@ -345,7 +340,7 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                         raise_amount = player1.bot_raise(player2)
                     else:
                         raise_amount = player1.raise_bet(player2)
-                    print(f"{player1.name} has raised {raise_amount}.")
+                    print(f"{player1.name}{colors.GREEN} has raised {raise_amount}.{colors.RESET}")
                     pot += raise_amount
                     player1_acted = True
                     player2_acted = False
@@ -358,44 +353,44 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                             action = player2.make_decision(community_cards, pot, player1.current_bet, 1)
                             break
                         else:
-                            action = input(f"{player2.name}, choose your action (check, raise): ").lower()
+                            action = input(f"{player2.name}{colors.MAGENTA}, choose your action (check, raise): {colors.RESET}").lower()
                             if action in ['check', 'raise']:
                                 break
                             else:
-                                print("Invalid action. Please choose 'check' or 'raise'.")
+                                print(f"{colors.RED}Invalid action. Please choose 'check' or 'raise'.{colors.RESET}")
                     elif player1.current_bet >= player2.chips:
                         if isinstance(player2, AIPlayer):
                             action = player2.make_decision(community_cards, pot, player1.current_bet, 2)
                             break
                         else:
-                            action = input(f"{player2.name}, choose your action (call {player1.current_bet - player2.current_bet}, fold): ").lower()
+                            action = input(f"{player2.name}{colors.MAGENTA}, choose your action (call {player1.current_bet - player2.current_bet}, fold): {colors.RESET}").lower()
                             if action in ['call', 'fold']:
                                 break
                             else:
-                                print("Invalid action. Please choose 'call' or 'fold'.")
+                                print(f"{colors.RED}Invalid action. Please choose 'call' or 'fold'.{colors.RESET}")
                     else:
                         if isinstance(player2, AIPlayer):
                             action = player2.make_decision(community_cards, pot, player1.current_bet, 3)
                             break
                         else:
-                            action = input(f"{player2.name}, choose your action (call {player1.current_bet - player2.current_bet}, raise, fold): ").lower()
+                            action = input(f"{player2.name}{colors.MAGENTA}, choose your action (call {player1.current_bet - player2.current_bet}, raise, fold): {colors.RESET}").lower()
                             if action in ['call', 'raise', 'fold']:
                                 break
                             else:
-                                print("Invalid action. Please choose 'call', 'raise', or 'fold'.")
+                                print(f"{colors.RED}Invalid action. Please choose 'call', 'raise', or 'fold'.{colors.RESET}")
 
                 if action == 'fold':
-                    print(f"{player2.name} has folded.")
+                    print(f"{player2.name}{colors.GREEN} has folded.{colors.RESET}")
                     player2.fold()
                     player2_acted = True
                     break
                 elif action == 'check':
-                    print(f"{player2.name} has checked.")
+                    print(f"{player2.name}{colors.GREEN} has checked.{colors.RESET}")
                     player2.check()
                     player2_acted = True
                 elif action == 'call':
                     call_amount = player2.call(player2.current_bet, player1.current_bet)
-                    print(f"{player2.name} has called {call_amount}.")
+                    print(f"{player2.name}{colors.GREEN} has called {call_amount}.{colors.RESET}")
                     pot += call_amount
                     player2_acted = True
                     if not blinds:
@@ -405,7 +400,7 @@ def betting_round(player1, player1_bet, player2, player2_bet, pot, blinds):
                         raise_amount = player2.bot_raise(player1)
                     else:
                         raise_amount = player2.raise_bet(player1)
-                    print(f"{player2.name} has raised {raise_amount}.")
+                    print(f"{player2.name}{colors.GREEN} has raised {raise_amount}.{colors.RESET}")
                     pot += raise_amount
                     player2_acted = True
                     player1_acted = False
@@ -421,17 +416,17 @@ def compare_hands(hand1, hand2, community_cards):
     best_hand1 = evaluator.best_hand(hand1, community_cards)
     best_hand2 = evaluator.best_hand(hand2, community_cards)
 
-    print(f"{player1.name} Best Hand: {best_hand1}")
-    print(f"{player2.name} Best Hand: {best_hand2}")
+    print(f"{player1.name}{colors.CYAN} Best Hand: {best_hand1}{colors.RESET}")
+    print(f"{player2.name}{colors.CYAN} Best Hand: {best_hand2}{colors.RESET}")
 
     hand_type1 = evaluator.hand_type(best_hand1[0])
     hand_type2 = evaluator.hand_type(best_hand2[0])
 
     if best_hand1[0] > best_hand2[0]:
-        print(f"{player1.name}'s {hand_type1} beats {player2.name}'s {hand_type2}")
+        print(f"{player1.name}{colors.CYAN}'s {hand_type1} beats {colors.RESET}{player2.name}{colors.CYAN}'s {hand_type2}{colors.RESET}")
         return player1
     elif best_hand1[0] < best_hand2[0]:
-        print(f"{player2.name}'s {hand_type2} beats {player1.name}'s {hand_type1}")
+        print(f"{player2.name}{colors.CYAN}'s {hand_type2} beats {colors.RESET}{player1.name}{colors.CYAN}'s {hand_type1}{colors.RESET}")
         return player2
     else:
         # Compare the card ranks in the best hands
@@ -439,28 +434,28 @@ def compare_hands(hand1, hand2, community_cards):
             rank1 = evaluator.card_rank(card1)
             rank2 = evaluator.card_rank(card2)
             if rank1 > rank2:
-                print(f"{player1.name}'s {hand_type1} beats {player2.name}'s {hand_type2}")
+                print(f"{player1.name}{colors.CYAN}'s {hand_type1} beats {colors.RESET}{player2.name}{colors.CYAN}'s {hand_type2}{colors.RESET}")
                 return player1
             elif rank1 < rank2:
-                print(f"{player2.name}'s {hand_type2} beats {player1.name}'s {hand_type1}")
+                print(f"{player2.name}{colors.CYAN}'s {hand_type2} beats {colors.RESET}{player1.name}{colors.CYAN}'s {hand_type1}{colors.RESET}")
                 return player2
-        print("It's a tie")
+        print(f"{colors.CYAN}It's a tie{colors.RESET}")
         return
 
 # --- MAIN GAME STATE ---
-buyin = int(input("How much would you like to buy in? This determines the blinds of the game as well: "))
+buyin = int(input(f"{colors.BLUE}How much would you like to buy in? This determines the blinds of the game as well: {colors.RESET}"))
 SMALL_BLIND = buyin/100
 BIG_BLIND = buyin/50
-print (f"Blinds are {SMALL_BLIND}/{BIG_BLIND}.")
+print (f"{colors.CYAN}Blinds are {SMALL_BLIND}/{BIG_BLIND}.{colors.RESET}")
 while True:
-    aggressiveness = int(input("On a scale of 1 to 10, how aggressive do you want the bot do be? (5/6 Recommended): "))
+    aggressiveness = int(input(f"{colors.BLUE}On a scale of 1 to 10, how aggressive do you want the bot do be? (5/6 Recommended): {colors.RESET}"))
     if aggressiveness in range(1, 11):
         aggressiveness /= 10
         break
     else:
-        print("Invalid entry. Try again.")
+        print(f"{colors.RED}Invalid entry. Try again.{colors.RESET}")
 
-print(f"Welcome. You will be playing against an AI Poker Bot in heads up poker. You have chosen to buy in for {buyin}. The bot will match this stack, and the blinds are set at {buyin/100}/{buyin/50}.")
+print(f"{colors.CYAN}Welcome. You will be playing against an AI Poker Bot in heads up poker. You have chosen to buy in for {buyin}. The bot will match this stack, and the blinds are set at {buyin/100}/{buyin/50}.{colors.RESET}")
 
 player1 = Player("Player", buyin)
 player2 = AIPlayer("AI Bot", buyin)
@@ -476,18 +471,18 @@ while player1.chips > 0 and player2.chips > 0:
     pot = 0
     player1.folded = False
     player2.folded = False
-    player1.hand, player2.hand, deck = shuffle_deal(deck)  # Deal new cards
-    community_cards = []  # Reset community cards
+    player1.hand, player2.hand, deck = shuffle_deal(deck)
+    community_cards = []
 
     # Determine who acts first based on the dealer
     if dealer == player1:
-        first_actor, first_actor_bet, second_actor, second_actor_bet = player2, SMALL_BLIND, player1, BIG_BLIND  # Player 2 acts first
+        first_actor, first_actor_bet, second_actor, second_actor_bet = player2, SMALL_BLIND, player1, BIG_BLIND
     else:
-        first_actor, first_actor_bet, second_actor, second_actor_bet = player1, SMALL_BLIND, player2, BIG_BLIND  # Player 1 acts first
+        first_actor, first_actor_bet, second_actor, second_actor_bet = player1, SMALL_BLIND, player2, BIG_BLIND
 
     # Display initial game state
-    print(f"Hand {hand_num}:\n{player1.name}'s stack: {player1.chips}.\n{player2.name}'s stack: {player2.chips}.")
-    print(f"{first_actor.name} is the Small Blind ({SMALL_BLIND}), {second_actor.name} is the Big Blind ({BIG_BLIND}).\n{first_actor.name} acts first.")
+    print(f"{colors.CYAN}Hand {hand_num}:\n{colors.RESET}{player1.name}{colors.CYAN}'s stack: {player1.chips}.\n{colors.RESET}{player2.name}{colors.CYAN}'s stack: {player2.chips}.{colors.RESET}")
+    print(f"{first_actor.name}{colors.CYAN} is the Small Blind ({SMALL_BLIND}), {colors.RESET}{second_actor.name}{colors.CYAN} is the Big Blind ({BIG_BLIND}).\n{colors.RESET}{first_actor.name}{colors.CYAN} acts first.{colors.RESET}")
     first_actor.chips -= SMALL_BLIND
     second_actor.chips -= BIG_BLIND
     pot += SMALL_BLIND + BIG_BLIND
@@ -513,10 +508,10 @@ while player1.chips > 0 and player2.chips > 0:
     # Determine and display the winner
     if player1.folded:
         player2.chips += pot
-        print(f"{player2.name} wins because {player1.name} folded.")
+        print(f"{player2.name}{colors.CYAN} wins because {colors.RESET}{player1.name}{colors.CYAN} folded.{colors.RESET}")
     elif player2.folded:
         player1.chips += pot
-        print(f"{player1.name} wins because {player2.name} folded.")
+        print(f"{player1.name}{colors.CYAN} wins because {colors.RESET}{player2.name}{colors.CYAN} folded.{colors.RESET}")
     else:
         winner = compare_hands(player1.hand, player2.hand, community_cards)
         if winner == player1:
@@ -528,17 +523,17 @@ while player1.chips > 0 and player2.chips > 0:
             player2.chips += int(pot/2)
 
     # Alternate the dealer for the next hand
-    print(f"{player1.name}'s stack: {player1.chips}.\n{player2.name}'s stack: {player2.chips}.")
+    print(f"{player1.name}{colors.CYAN}'s stack: {player1.chips}.\n{colors.RESET}{player2.name}{colors.CYAN}'s stack: {player2.chips}.{colors.RESET}")
     dealer = player2 if dealer == player1 else player1
 
     # Check if the game should continue
     if player1.chips == 0 and player2.chips > 0:
-        print(f"Game over! {player2.name} wins!")
+        print(f"{colors.BLUE}Game over! {colors.RESET}{player2.name}{colors.BLUE} wins!{colors.RESET}")
         break
-    elif player2.chips ==0 and player1.chips > 0:
-        print(f"Game over! {player1.name} wins!")
+    elif player2.chips == 0 and player1.chips > 0:
+        print(f"{colors.BLUE}Game over! {colors.RESET}{player1.name}{colors.BLUE} wins!{colors.RESET}")
         break
 
-    continue_game = input(f"Do you want to play another hand? (yes/no): ").lower()
+    continue_game = input(f"{colors.CYAN}Do you want to play another hand? (yes/no): {colors.RESET}").lower()
     if continue_game != 'yes':
         break

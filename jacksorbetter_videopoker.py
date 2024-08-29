@@ -1,14 +1,6 @@
 from misc.hand_evaluator import HandEvaluator
 from misc.deck import Deck
-
-# Define ANSI escape codes for colors
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-BLUE = "\033[94m"
-MAGENTA = "\033[95m"
-CYAN = "\033[96m"
-RESET = "\033[0m"
+import misc.ansicolors as colors
 
 class JacksOrBetter:
     def __init__(self):
@@ -18,19 +10,19 @@ class JacksOrBetter:
         self.current_bet = 0
 
     def play(self):
-        print(f"{CYAN}Welcome to Jacks or Better Video Poker!{RESET}")
+        print(f"\n{colors.CYAN}Welcome to Jacks or Better Video Poker!{colors.RESET}")
         while True:
             if self.current_bet == 0:
                 self.current_bet = self.get_bet()
 
-            print(f"\n{BLUE}Current Net Profit/Loss: {self.net_profit} credits{RESET}")
+            print(f"\n{colors.BLUE}Current Net Profit/Loss: {self.net_profit} credits{colors.RESET}")
             self.deck = Deck()
             hand = self.deck.deal(5)
-            print(f"{MAGENTA}Your hand:{RESET}", ', '.join(str(card) for card in hand))
+            print(f"{colors.MAGENTA}Your hand:{colors.RESET}", ', '.join(str(card) for card in hand))
 
             held_indices = self.get_held_cards()
             self.final_hand = self.redraw_cards(hand, held_indices)
-            print(f"{MAGENTA}Your final hand:{RESET}", ', '.join(str(card) for card in self.final_hand))
+            print(f"{colors.MAGENTA}Your final hand:{colors.RESET}", ', '.join(str(card) for card in self.final_hand))
 
             hand_rank = self.evaluator.best_hand(self.final_hand, [])
             payout = self.calculate_payout(hand_rank[0])
@@ -39,17 +31,17 @@ class JacksOrBetter:
 
             hand_type = self.evaluator.hand_type(hand_rank[0])
             if payout > 0:
-                print(f"{GREEN}Hand Type: {hand_type}{RESET}")
-                print(f"{GREEN}Payout: {payout} credits{RESET}")
+                print(f"{colors.GREEN}Hand Type: {hand_type}{colors.RESET}")
+                print(f"{colors.GREEN}Payout: {payout} credits{colors.RESET}")
             else:
-                print(f"{RED}Hand Type: {hand_type}{RESET}")
-                print(f"{RED}No Payout{RESET}")
+                print(f"{colors.RED}Hand Type: {hand_type}{colors.RESET}")
+                print(f"{colors.RED}No Payout{colors.RESET}")
             
-            print(f"{BLUE}New Net Profit/Loss: {self.net_profit} credits{RESET}")
+            print(f"{colors.BLUE}New Net Profit/Loss: {self.net_profit} credits{colors.RESET}")
 
             next_action = self.get_next_action()
             if next_action == 'stop':
-                print(f"{BLUE}Final Net Profit/Loss: {self.net_profit} credits{RESET}")
+                print(f"{colors.BLUE}Final Net Profit/Loss: {self.net_profit} credits{colors.RESET}")
                 break
             elif next_action == 'change':
                 self.current_bet = 0
@@ -57,16 +49,16 @@ class JacksOrBetter:
     def get_bet(self):
         while True:
             try:
-                bet = int(input(f"{CYAN}Enter your bet (any amount of credits): {RESET}"))
+                bet = int(input(f"{colors.CYAN}Enter your bet (any amount of credits): {colors.RESET}"))
                 if bet > 0:
                     return bet
                 else:
-                    print(f"{RED}Bet amount must be greater than zero.{RESET}")
+                    print(f"{colors.RED}Bet amount must be greater than zero.{colors.RESET}")
             except ValueError:
-                print(f"{RED}Please enter a valid number.{RESET}")
+                print(f"{colors.RED}Please enter a valid number.{colors.RESET}")
 
     def get_held_cards(self):
-        held_cards = input(f"{YELLOW}Enter the positions (1-5) of the cards you want to hold, separated by spaces (e.g., '1 3 5'): {RESET}")
+        held_cards = input(f"{colors.YELLOW}Enter the positions (1-5) of the cards you want to hold, separated by spaces (e.g., '1 3 5'): {colors.RESET}")
         return [int(pos) - 1 for pos in held_cards.split() if pos.isdigit() and 1 <= int(pos) <= 5]
 
     def redraw_cards(self, hand, held_indices):
@@ -98,7 +90,7 @@ class JacksOrBetter:
 
     def get_next_action(self):
         while True:
-            action = input(f"{CYAN}Do you want to stop playing (s), replay again with the same bet (r), or change bet size (c)?\n Enter s, r, or c: {RESET}").lower()
+            action = input(f"{colors.CYAN}Do you want to stop playing (s), replay again with the same bet (r), or change bet size (c)?\n Enter s, r, or c: {colors.RESET}").lower()
             if action == 's':
                 return 'stop'
             elif action == 'r':
@@ -106,7 +98,7 @@ class JacksOrBetter:
             elif action == 'c':
                 return 'change'
             else:
-                print(f"{RED}Invalid input. Please enter s, r, or c.{RESET}")
+                print(f"{colors.RED}Invalid input. Please enter s, r, or c.{colors.RESET}")
 
 if __name__ == "__main__":
     game = JacksOrBetter()
