@@ -255,6 +255,8 @@ class AIPlayer(Player):
         base_raise = round((SMALL_BLIND * chosen_multiplier),2)
         br = max(base_raise, 2 * opponent.current_bet)
         br = min(br, self.chips)  # Ensure the bot doesn’t bet more than it has
+        br = round(br, 1)
+        br = round(br * 2) / 2
 
         self.bet(br)
         return br
@@ -443,7 +445,12 @@ def compare_hands(hand1, hand2, community_cards):
         return
 
 # --- MAIN GAME STATE ---
-buyin = int(input(f"{colors.BLUE}How much would you like to buy in? This determines the blinds of the game as well: {colors.RESET}"))
+while True:
+    buyin = int(input(f"{colors.BLUE}How much would you like to buy in? This determines the blinds of the game as well: {colors.RESET}"))
+    if isinstance(buyin, int):
+        break
+    else:
+        print(f"{colors.RED}Invalid entry. Try again.{colors.RESET}")
 SMALL_BLIND = buyin/100
 BIG_BLIND = buyin/50
 print (f"{colors.CYAN}Blinds are {SMALL_BLIND}/{BIG_BLIND}.{colors.RESET}")
@@ -471,6 +478,7 @@ while player1.chips > 0 and player2.chips > 0:
     pot = 0
     player1.folded = False
     player2.folded = False
+    deck = Deck()
     player1.hand, player2.hand, deck = shuffle_deal(deck)
     community_cards = []
 
